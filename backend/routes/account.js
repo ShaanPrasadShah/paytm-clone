@@ -1,15 +1,15 @@
 const express = require('express')
-const authMiddleware = require('../middleware')
+const {authMiddleware} = require('../middleware')
 const { accountModel } = require('../db')
 const { mongo, default: mongoose } = require('mongoose')
 
 const router = express.Router()
 
 
-router.get('/balance',authMiddleware,async (req,res)=>{
+router.get('/balance',authMiddleware, async (req,res)=>{
     let account = await accountModel.findOne({userId:req.userId})
     res.json({
-        message : account.balance
+        balance : account.balance
     })
 })
 

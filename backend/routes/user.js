@@ -2,17 +2,21 @@ const express = require('express')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
 const zod = require('zod')
-const JWT_SECRET = require('../config')
-const authMiddleware = require('../middleware')
+const {JWT_SECRET} = require('../config')
+const {authMiddleware} = require('../middleware')
 const router = express.Router() 
-const userModel = require('../db')
-const accountModel = require('../db')
+const {userModel,accountModel} = require('../db')
+
 
 const signupSchema = zod.object({
     username : zod.string().email(),
     password :zod.string(),
     firstname : zod.string(),
     lastname : zod.string()
+})
+const signinSchema = zod.object({
+    username : zod.string().email(),
+    password :zod.string()
 })
 
 const updateSchema = zod.object({
@@ -23,7 +27,7 @@ const updateSchema = zod.object({
 
 
 router.post('/signup',async(req,res)=>{
-    const {firstname,lastname,username,pasword} = req.body;
+    const {firstname,lastname,username,password} = req.body;
     const {success} = signupSchema.safeParse(req.body)
     if(!success){
         return res.json({
@@ -34,20 +38,23 @@ router.post('/signup',async(req,res)=>{
     if(user){
         return res.status(404).send('user is already present')
     }
-    bcrypt.genSalt(saltRounds, function(err, salt) {
+    bcrypt.genSalt(10, function(err, salt) {
         bcrypt.hash(password, salt,async function(err, hash) {
-            let createdUser = await userModel.create({firstname,lastname,username,pasword:hash})
-            let token = jwt.sign({userId : user._id},JWT_SECRET)
+            let createdUser = await userModel.create({firstname,lastname,username,password:hash})
+            const userId = createdUser._id;
+            await accountModel.create({userId,balance:1+Math.random()*10000})
+
+            let token = jwt.sign({userId},JWT_SECRET)
             res.json({message : 'user created successfully',token});
 
-            await accountModel.create({userId:createdUser._id,balance:1+Math.random()*10000})
+            
         });
     });
 })
 
 router.post('/signin',async (req,res)=>{
-    const {firstname,lastname,username,pasword} = req.body;
-    const {success} = signupSchema.safeParse(req.body)
+    const {username,password} = req.body;
+    const {success} = signinSchema.safeParse(req.body)
     if(!success){
         return res.json({
             message : 'fill data carefully'
@@ -55,14 +62,17 @@ router.post('/signin',async (req,res)=>{
     }
     const user = await userModel.findOne({username})
     if(user){
-        bcrypt.compare(pasword,user.password,(error,result)=>{
+        bcrypt.compare(password,user.password,(error,result)=>{
             if(!result){
                 return res.status(401).json({
                     message : 'invalid credentials'
                 });
             }
+            const userId = user._id;
+            let token = jwt.sign({userId},JWT_SECRET)
             res.json({
-                message: 'signed in successfully'
+                message: 'signed in successfully',
+                token
             })
         })
     }

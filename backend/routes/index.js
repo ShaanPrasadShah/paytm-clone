@@ -4,7 +4,7 @@ const userRouter = require('./user')
 const accountRouter = require('./account')
 
 router.use('/user',userRouter)
-router.use('/accounts',accountRouter)
+router.use('/account',accountRouter)
 
 
 module.exports = router;
