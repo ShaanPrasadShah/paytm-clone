@@ -72,7 +72,8 @@ router.post('/signin',async (req,res)=>{
             let token = jwt.sign({userId},JWT_SECRET)
             res.json({
                 message: 'signed in successfully',
-                token
+                token,
+                userId
             })
         })
     }
@@ -95,7 +96,7 @@ router.put('/',authMiddleware,async (req,res)=>{
 
 })
 
-router.get('/bulk',async ()=>{
+router.get('/bulk',authMiddleware,async (req,res)=>{
     const filter = req.query.filter || ""
 
     const users = await userModel.find({
@@ -109,6 +110,7 @@ router.get('/bulk',async ()=>{
             }
         }]
     })
+    
 
     res.json({
         user : users.map(user=>({
